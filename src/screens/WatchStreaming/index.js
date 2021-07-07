@@ -8,20 +8,29 @@ import {
   View,
   PermissionsAndroid,
   TouchableOpacity,
+  TextInput,
+  ScrollView,
+  KeyboardAvoidingView,
+  FlatList,
   ActivityIndicator,
 } from 'react-native';
 import RtcEngine, {
   RtcRemoteView,
   VideoRenderMode,
   ChannelProfile,
+  DataStreamConfig,
   ClientRole,
 } from 'react-native-agora';
 import {dimensions, liveStreamingProperties} from '../../constants';
 
 let agoraEngine;
+let streamId;
+let listChatGlobal = [];
 const WatchStreaming = () => {
   const [joinSuccess, setJoinSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [textChat, setTextChat] = useState('');
+  const [listChat, setListChat] = useState([]);
   useEffect(() => {
     initStreaming();
   }, []);
@@ -40,10 +49,14 @@ const WatchStreaming = () => {
     });
 
     //* when local user join channel success
-    agoraEngine.addListener('JoinChannelSuccess', (channel, uid, elapsed) => {
-      console.log(`Audiance Join channel success ${uid} ${channel}`);
-      setJoinSuccess(true);
-    });
+    agoraEngine.addListener(
+      'JoinChannelSuccess',
+      async (channel, uid, elapsed) => {
+        streamId = await agoraEngine.createDataStream(true, true);
+        console.log(`Audiance Join channel success ${uid} ${channel}`);
+        setJoinSuccess(true);
+      },
+    );
     //* when local user leave channel
     agoraEngine.addListener('LeaveChannel', stats => {
       console.info('LeaveChannel', stats);
@@ -52,6 +65,14 @@ const WatchStreaming = () => {
     agoraEngine.addListener('Error', error => {
       console.log('error', error);
     });
+    agoraEngine.addListener('StreamMessage', (uid, streamId, data) => {
+      changeDataListChat(uid, data);
+      console.log(`co tin nhan moi tu ${uid}, ${streamId}, ${data}`);
+    });
+  };
+  const changeDataListChat = (uid, text) => {
+    listChatGlobal.unshift({uid, text});
+    setListChat([...listChatGlobal]);
   };
 
   const onStartStreamPressed = async () => {
@@ -68,6 +89,12 @@ const WatchStreaming = () => {
     // setLoading(false);
   };
 
+  const onSendMessagePressed = async () => {
+    await agoraEngine.sendStreamMessage(streamId, textChat);
+    changeDataListChat(2, textChat);
+    setTextChat('');
+  };
+
   const onLeaveChannel = () => {
     agoraEngine.leaveChannel();
   };
@@ -82,7 +109,7 @@ const WatchStreaming = () => {
           borderColor: 'black',
           borderWidth: 1,
           borderRadius: 5,
-          marginTop: 20,
+          marginBottom: 20,
         }}>
         <Text>Join Stream</Text>
       </TouchableOpacity>
@@ -92,7 +119,7 @@ const WatchStreaming = () => {
   const renderLocalView = () => {
     return (
       <RtcRemoteView.SurfaceView
-        style={{width: dimensions.width, height: dimensions.height - 200}}
+        style={{width: dimensions.width, height: dimensions.height - 100}}
         channelId={liveStreamingProperties.channelName}
         uid={131231}
       />
@@ -100,8 +127,13 @@ const WatchStreaming = () => {
   };
 
   return (
-    <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-      {joinSuccess ? renderLocalView() : renderButtonStartStream()}
+    <View
+      style={{
+        flex: 1,
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
       <TouchableOpacity
         onPress={onLeaveChannel}
         style={{
@@ -113,6 +145,70 @@ const WatchStreaming = () => {
         }}>
         <Text>Leave Channel</Text>
       </TouchableOpacity>
+      {joinSuccess ? (
+        <View style={{flex: 1, position: 'relative'}}>
+          {renderLocalView()}
+          <View
+            style={{
+              flex: 1,
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              width: '100%',
+            }}>
+            <KeyboardAvoidingView
+              style={{
+                flex: 1,
+                flexDirection: 'column',
+                width: '100%',
+              }}>
+              <FlatList
+                data={listChat}
+                keyExtractor={(_, index) => index.toString()}
+                style={{height: dimensions.height * 0.4}}
+                inverted
+                contentContainerStyle={{
+                  backgroundColor: 'rgba(0,0,0,0.4)',
+                  paddingHorizontal: 10,
+                }}
+                renderItem={({item}) => (
+                  <View style={{flexDirection: 'row', paddingVertical: 5}}>
+                    <Text style={{color: 'white', fontSize: 15}}>
+                      {item.uid !== 131231 ? 'Toi' : 'MiCheal Pham'}:
+                    </Text>
+                    <Text style={{color: 'white'}}>{item.text}</Text>
+                  </View>
+                )}
+              />
+
+              <View style={{flexDirection: 'row'}}>
+                <TextInput
+                  placeholder="Nhap chat"
+                  value={textChat}
+                  onChangeText={text => setTextChat(text)}
+                  style={{
+                    backgroundColor: 'white',
+                    width: '90%',
+                    paddingHorizontal: 10,
+                  }}
+                />
+                <TouchableOpacity
+                  onPress={onSendMessagePressed}
+                  style={{
+                    backgroundColor: 'blue',
+                    width: '10%',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                  <Text style={{color: 'white'}}>Send</Text>
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </View>
+        </View>
+      ) : (
+        renderButtonStartStream()
+      )}
     </View>
   );
 };
