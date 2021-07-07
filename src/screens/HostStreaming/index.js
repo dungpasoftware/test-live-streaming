@@ -83,7 +83,7 @@ const HostStreaming = () => {
       liveStreamingProperties.token,
       liveStreamingProperties.channelName,
       null,
-      1615027627,
+      131231,
     );
     console.log('engina started');
 
@@ -116,7 +116,6 @@ const HostStreaming = () => {
       <RtcLocalView.SurfaceView
         style={{width: dimensions.width, height: dimensions.height - 200}}
         channelId={liveStreamingProperties.channelName}
-        renderMode={VideoRenderMode.Hidden}
       />
     );
   };

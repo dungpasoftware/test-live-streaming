@@ -22,7 +22,6 @@ let agoraEngine;
 const WatchStreaming = () => {
   const [joinSuccess, setJoinSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showHide, setshowHide] = useState(false);
   useEffect(() => {
     initStreaming();
   }, []);
@@ -30,8 +29,9 @@ const WatchStreaming = () => {
   //! init streaming
   const initStreaming = async () => {
     agoraEngine = await RtcEngine.create(liveStreamingProperties.appId);
-    agoraEngine.setChannelProfile(ChannelProfile.LiveBroadcasting);
-    agoraEngine.setClientRole(ClientRole.Broadcaster);
+    // agoraEngine.setChannelProfile(ChannelProfile.LiveBroadcasting);
+    await agoraEngine.setClientRole(ClientRole.Audience);
+    await agoraEngine.enableVideo();
 
     console.log('init thanh cong', agoraEngine);
     //? listening events
@@ -61,7 +61,7 @@ const WatchStreaming = () => {
       liveStreamingProperties.token,
       liveStreamingProperties.channelName,
       null,
-      1615027628,
+      1,
     );
     console.log('engina started');
 
@@ -94,15 +94,14 @@ const WatchStreaming = () => {
       <RtcRemoteView.SurfaceView
         style={{width: dimensions.width, height: dimensions.height - 200}}
         channelId={liveStreamingProperties.channelName}
-        uid={1615027627}
-        renderMode={VideoRenderMode.Hidden}
+        uid={131231}
       />
     );
   };
 
   return (
     <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-      {joinSuccess ? showHide && renderLocalView() : renderButtonStartStream()}
+      {joinSuccess ? renderLocalView() : renderButtonStartStream()}
       <TouchableOpacity
         onPress={onLeaveChannel}
         style={{
@@ -113,17 +112,6 @@ const WatchStreaming = () => {
           marginTop: 20,
         }}>
         <Text>Leave Channel</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => setshowHide(!showHide)}
-        style={{
-          padding: 5,
-          borderColor: 'black',
-          borderWidth: 1,
-          borderRadius: 5,
-          marginTop: 20,
-        }}>
-        <Text>Show Hide</Text>
       </TouchableOpacity>
     </View>
   );
